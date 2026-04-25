@@ -1,7 +1,7 @@
 type OverviewMetric = {
   label: string;
   value: string;
-  detail: string;
+  detail?: string;
 };
 
 type Construct = {
@@ -16,10 +16,10 @@ export async function getDashboardOverview(): Promise<{
 }> {
   return {
     metrics: [
-      { label: "Users", value: "12", detail: "Accounts, passwords, roles, and profile access." },
-      { label: "Roles", value: "4", detail: "Permission sets used across profiles and gateways." },
-      { label: "Profiles", value: "4", detail: "Access scopes that decide which MCPs are returned." },
-      { label: "Gateways", value: "3", detail: "Development, staging, and production endpoints." },
+      { label: "Users", value: "12" },
+      { label: "Roles", value: "4" },
+      { label: "Profiles", value: "4" },
+      { label: "Gateways", value: "3" },
     ],
     constructs: [
       { name: "Users", href: "/users", summary: "Manage accounts, passwords, assigned roles, and profile access." },

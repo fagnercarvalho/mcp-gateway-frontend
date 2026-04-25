@@ -9,9 +9,8 @@ export default async function SsoPage() {
     <div className="page">
       <PageHeader
         eyebrow="SSO"
-        title="SAML setup"
-        description="Review the settings needed for SAML sign-in."
-        actions={<span className="badge">{sso.provider}</span>}
+        title="SSO setup"
+        description=""
       />
 
       <SsoAdmin initialState={sso} />

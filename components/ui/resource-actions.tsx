@@ -5,6 +5,7 @@ type ResourceActionsProps = {
   onDelete: () => void;
   editLabel?: string;
   deleteLabel?: string;
+  extraActions?: React.ReactNode;
 };
 
 function PencilIcon() {
@@ -33,9 +34,11 @@ export function ResourceActions({
   onDelete,
   editLabel = "Edit",
   deleteLabel = "Delete",
+  extraActions,
 }: ResourceActionsProps) {
   return (
     <div className="resource-actions">
+      {extraActions}
       <button className="icon-button" type="button" onClick={onEdit} aria-label={editLabel} title={editLabel}>
         <PencilIcon />
       </button>

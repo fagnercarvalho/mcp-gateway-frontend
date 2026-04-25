@@ -21,9 +21,11 @@ export default async function HomePage() {
       </section>
 
       <section className="grid">
-        <article className="card">
-          <span className="eyebrow">Platform Constructs</span>
-          <h2>How the platform is organized</h2>
+        <article className="card overview-card">
+          <div className="section-heading">
+            <span className="eyebrow">Platform Constructs</span>
+            <h2>How the platform is organized</h2>
+          </div>
           <div className="list">
             {overview.constructs.map((construct) => (
               <div className="list-item" key={construct.name}>

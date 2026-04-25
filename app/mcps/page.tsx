@@ -9,8 +9,8 @@ export default async function McpsPage() {
     <div className="page">
       <PageHeader
         eyebrow="MCP Servers"
-        title="Allowlisted MCP servers"
-        description="Browse the MCP servers that are available to the platform."
+        title="MCP servers"
+        description="Manage MCP connections created from approved templates."
       />
 
       <McpsAdmin initialMcps={mcps} catalog={catalog} />

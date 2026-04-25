@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { ResourceActions } from "@/components/ui/resource-actions";
 import type { MpcRecord } from "@/features/mcps/data";
@@ -30,6 +31,12 @@ type McpsAdminProps = {
   catalog: AllowedCatalogEntry[];
 };
 
+type HeaderDraft = {
+  key: string;
+  value: string;
+  lockedKey: boolean;
+};
+
 const mcpTemplates: Record<string, MpcTemplate> = {
   Datadog: {
     name: "Datadog",
@@ -45,26 +52,9 @@ const mcpTemplates: Record<string, MpcTemplate> = {
   },
 };
 
-function buildConfigExample(mcp: Pick<MpcRecord, "name" | "type" | "url" | "headers">) {
-  return JSON.stringify(
-    {
-      mcpServers: {
-        [mcp.name.toLowerCase().replace(/\s+/g, "-")]: {
-          type: mcp.type,
-          url: mcp.url,
-          headers: Object.fromEntries(mcp.headers.map((header) => [header.key, header.value])),
-        },
-      },
-    },
-    null,
-    2,
-  );
-}
-
 export function McpsAdmin({ initialMcps, catalog }: McpsAdminProps) {
   const defaultTemplateName = catalog[0]?.name ?? "Datadog";
   const [mcps, setMcps] = useState(initialMcps);
-  const [selectedName, setSelectedName] = useState<string | null>(initialMcps[0]?.name ?? null);
   const [editingMcp, setEditingMcp] = useState<MpcRecord | null>(null);
   const [deleteMcp, setDeleteMcp] = useState<MpcRecord | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -73,9 +63,7 @@ export function McpsAdmin({ initialMcps, catalog }: McpsAdminProps) {
   const [name, setName] = useState("");
   const [type, setType] = useState("http");
   const [url, setUrl] = useState("");
-  const [headers, setHeaders] = useState<Array<{ key: string; value: string }>>([]);
-
-  const selectedMcp = useMemo(() => mcps.find((item) => item.name === selectedName) ?? null, [mcps, selectedName]);
+  const [headers, setHeaders] = useState<HeaderDraft[]>([]);
 
   function applyTemplate(templateName: string) {
     const template = mcpTemplates[templateName] ?? mcpTemplates.Datadog;
@@ -83,7 +71,7 @@ export function McpsAdmin({ initialMcps, catalog }: McpsAdminProps) {
     setName(template.name);
     setType(template.type);
     setUrl(template.url);
-    setHeaders(template.headers.map((header) => ({ ...header })));
+    setHeaders(template.headers.map((header) => ({ ...header, lockedKey: true })));
   }
 
   function resetForm(templateName = defaultTemplateName) {
@@ -97,12 +85,14 @@ export function McpsAdmin({ initialMcps, catalog }: McpsAdminProps) {
   }
 
   function openEditModal(mcp: MpcRecord) {
+    const template = mcpTemplates[defaultTemplateName] ?? mcpTemplates.Datadog;
+    const lockedKeys = new Set(template.headers.map((header) => header.key));
     setEditingMcp(mcp);
     setSelectedTemplate(defaultTemplateName);
     setName(mcp.name);
     setType(mcp.type);
     setUrl(mcp.url);
-    setHeaders(mcp.headers.map((header) => ({ ...header })));
+    setHeaders(mcp.headers.map((header) => ({ ...header, lockedKey: lockedKeys.has(header.key) })));
     setFormOpen(true);
   }
 
@@ -117,89 +107,66 @@ export function McpsAdmin({ initialMcps, catalog }: McpsAdminProps) {
     );
   }
 
+  function addHeader() {
+    setHeaders((current) => [...current, { key: "", value: "", lockedKey: false }]);
+  }
+
+  function removeHeader(index: number) {
+    setHeaders((current) => current.filter((_, headerIndex) => headerIndex !== index));
+  }
+
   return (
     <section className="grid">
       <div className="section-toolbar">
-        <p>Only allowlisted MCP servers are available here.</p>
+        <p>Create MCPs from approved templates and manage their connection settings.</p>
         <button className="action-button toolbar-button" type="button" onClick={openCreateModal}>
           Create MCP
         </button>
       </div>
 
-      <div className="catalog-grid">
-        {mcps.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className={`catalog-card${selectedName === item.name ? " selected" : ""}`}
-            onClick={() => setSelectedName(item.name)}
-          >
-            <span className="logo-badge">{item.logoText}</span>
-            <strong>{item.name}</strong>
-            <span>{item.vendor}</span>
-            <span className="pill strong">{item.status}</span>
-          </button>
-        ))}
-      </div>
-
-      {selectedMcp ? (
-        <article className="card">
-          <div className="page-header" style={{ alignItems: "start" }}>
-            <div className="catalog-hero">
-              <span className="logo-badge large">{selectedMcp.logoText}</span>
-              <div>
-                <span className="eyebrow">{selectedMcp.vendor}</span>
-                <h2>{selectedMcp.name}</h2>
-                <p>{selectedMcp.url}</p>
+      <DataTable
+        rows={mcps}
+        getRowKey={(mcp) => mcp.id}
+        columns={[
+          {
+            header: "MCP",
+            render: (mcp) => (
+              <div className="resource-cell">
+                <span className="logo-badge table">{mcp.logoText}</span>
+                <div className="resource-cell-copy">
+                  <strong>{mcp.name}</strong>
+                  <span>{mcp.vendor}</span>
+                </div>
               </div>
-            </div>
-            <div className="resource-header-actions">
-              <span className="badge strong">{selectedMcp.type}</span>
-              <ResourceActions
-                onEdit={() => openEditModal(selectedMcp)}
-                onDelete={() => setDeleteMcp(selectedMcp)}
-                deleteLabel={`Delete ${selectedMcp.name}`}
-                editLabel={`Edit ${selectedMcp.name}`}
-              />
-            </div>
-          </div>
-
-          <div className="grid two-column">
-            <div>
-              <p className="eyebrow">Headers</p>
-              <div className="stack" style={{ marginTop: 10 }}>
-                {selectedMcp.headers.map((header) => (
-                  <span className="pill strong" key={header.key}>
-                    {header.key}: {header.value}
+            ),
+          },
+          { header: "Type", render: (mcp) => <span className="pill strong">{mcp.type}</span> },
+          { header: "URL", render: (mcp) => <code>{mcp.url}</code> },
+          {
+            header: "Headers",
+            render: (mcp) => (
+              <div className="stack">
+                {mcp.headers.map((header) => (
+                  <span className="pill" key={header.key}>
+                    {header.key}
                   </span>
                 ))}
               </div>
-
-              <p className="eyebrow" style={{ marginTop: 18 }}>Profiles</p>
-              <div className="stack" style={{ marginTop: 10 }}>
-                {selectedMcp.profileNames.length ? (
-                  selectedMcp.profileNames.map((profile) => (
-                    <span className="pill" key={profile}>
-                      {profile}
-                    </span>
-                  ))
-                ) : (
-                  <span className="pill">No profiles assigned yet</span>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <p className="eyebrow">Configuration</p>
-              <pre className="code-block">{buildConfigExample(selectedMcp)}</pre>
-            </div>
-          </div>
-        </article>
-      ) : (
-        <article className="instruction-card empty-state">
-          <p>Select an MCP server to view its configuration and access details.</p>
-        </article>
-      )}
+            ),
+          },
+          {
+            header: "Actions",
+            render: (mcp) => (
+              <ResourceActions
+                onEdit={() => openEditModal(mcp)}
+                onDelete={() => setDeleteMcp(mcp)}
+                deleteLabel={`Delete ${mcp.name}`}
+                editLabel={`Edit ${mcp.name}`}
+              />
+            ),
+          },
+        ]}
+      />
 
       <Modal
         open={formOpen}
@@ -236,7 +203,6 @@ export function McpsAdmin({ initialMcps, catalog }: McpsAdminProps) {
                     ? current.map((item) => (item.id === editingMcp.id ? { ...item, ...nextMcp } : item))
                     : [{ ...nextMcp, id: `mcp-${current.length + 1}` }, ...current],
                 );
-                setSelectedName(nextMcp.name);
                 setSuccessMessage(editingMcp ? "MCP updated." : "MCP created.");
                 closeFormModal();
               }}
@@ -247,20 +213,24 @@ export function McpsAdmin({ initialMcps, catalog }: McpsAdminProps) {
         }
       >
         <div className="form-grid">
-          <label className="field">
+          <div className="field">
             <span>Template</span>
-            <select
-              value={selectedTemplate}
-              onChange={(event) => applyTemplate(event.target.value)}
-              disabled={Boolean(editingMcp)}
-            >
+            <div className="catalog-grid compact">
               {catalog.map((item) => (
-                <option key={item.name} value={item.name}>
-                  {item.name}
-                </option>
+                <button
+                  key={item.name}
+                  type="button"
+                  className={`catalog-card compact${selectedTemplate === item.name ? " selected" : ""}`}
+                  onClick={() => applyTemplate(item.name)}
+                  disabled={Boolean(editingMcp)}
+                >
+                  <span className="logo-badge">{item.logoText}</span>
+                  <strong>{item.name}</strong>
+                  <span>{item.vendor}</span>
+                </button>
               ))}
-            </select>
-          </label>
+            </div>
+          </div>
           <label className="field">
             <span>Name</span>
             <input value={name} onChange={(event) => setName(event.target.value)} />
@@ -271,7 +241,7 @@ export function McpsAdmin({ initialMcps, catalog }: McpsAdminProps) {
           </label>
           <label className="field">
             <span>URL</span>
-            <input value={url} onChange={(event) => setUrl(event.target.value)} />
+            <input value={url} disabled readOnly />
           </label>
           <div className="field">
             <span>Headers</span>
@@ -281,6 +251,8 @@ export function McpsAdmin({ initialMcps, catalog }: McpsAdminProps) {
                   <input
                     value={header.key}
                     onChange={(event) => updateHeader(index, "key", event.target.value)}
+                    disabled={header.lockedKey}
+                    readOnly={header.lockedKey}
                     aria-label={`Header key ${index + 1}`}
                   />
                   <input
@@ -288,12 +260,25 @@ export function McpsAdmin({ initialMcps, catalog }: McpsAdminProps) {
                     onChange={(event) => updateHeader(index, "value", event.target.value)}
                     aria-label={`Header value ${index + 1}`}
                   />
+                  <button
+                    className="icon-button header-row-remove"
+                    type="button"
+                    onClick={() => removeHeader(index)}
+                    aria-label={`Remove header ${index + 1}`}
+                    title={`Remove header ${index + 1}`}
+                    disabled={header.lockedKey}
+                  >
+                    ×
+                  </button>
                 </div>
               ))}
             </div>
+            <button className="secondary-button header-add-button" type="button" onClick={addHeader}>
+              Add header
+            </button>
           </div>
           <p className="form-note">
-            MCP creation is restricted to allowlisted templates. Only Datadog is currently available.
+            Template URL and built-in header names stay fixed. You can update header values and add extra headers.
           </p>
         </div>
       </Modal>
@@ -315,9 +300,7 @@ export function McpsAdmin({ initialMcps, catalog }: McpsAdminProps) {
                   return;
                 }
 
-                const remainingMcps = mcps.filter((item) => item.id !== deleteMcp.id);
-                setMcps(remainingMcps);
-                setSelectedName((current) => (current === deleteMcp.name ? (remainingMcps[0]?.name ?? null) : current));
+                setMcps((current) => current.filter((item) => item.id !== deleteMcp.id));
                 setDeleteMcp(null);
                 setSuccessMessage("MCP deleted.");
               }}

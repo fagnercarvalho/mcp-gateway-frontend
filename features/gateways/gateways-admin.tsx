@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { ResourceActions } from "@/components/ui/resource-actions";
@@ -19,10 +20,21 @@ type GatewaysAdminProps = {
   availableProfiles: ProfileRecord[];
 };
 
+function TerminalIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M4 6h16v12H4z" />
+      <path d="m8 10 2 2-2 2" />
+      <path d="M12 14h4" />
+    </svg>
+  );
+}
+
 export function GatewaysAdmin({ initialGateways, setupExamples, availableProfiles }: GatewaysAdminProps) {
   const [gateways, setGateways] = useState(initialGateways);
   const [editingGateway, setEditingGateway] = useState<GatewayRecord | null>(null);
   const [deleteGateway, setDeleteGateway] = useState<GatewayRecord | null>(null);
+  const [setupGateway, setSetupGateway] = useState<GatewayRecord | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [selectedTool, setSelectedTool] = useState(setupExamples[0]?.tool ?? "Claude Code");
@@ -73,97 +85,71 @@ export function GatewaysAdmin({ initialGateways, setupExamples, availableProfile
         </button>
       </div>
 
-      <section className="grid">
-        {gateways.map((gateway) => (
-          <article className="card" key={gateway.id}>
-            <div className="page-header" style={{ alignItems: "start" }}>
-              <div>
-                <span className="eyebrow">{gateway.environment}</span>
-                <h2>{gateway.name}</h2>
-                <p>{gateway.address}</p>
+      <DataTable
+        rows={gateways}
+        getRowKey={(gateway) => gateway.id}
+        columns={[
+          {
+            header: "Gateway",
+            render: (gateway) => (
+              <div className="resource-cell-copy">
+                <strong>{gateway.name}</strong>
+                <span>{gateway.address}</span>
               </div>
-              <div className="resource-header-actions">
-                <span className="badge strong">{gateway.profileNames.length} profiles</span>
-                <ResourceActions
-                  onEdit={() => openEditModal(gateway)}
-                  onDelete={() => setDeleteGateway(gateway)}
-                  deleteLabel={`Delete ${gateway.name}`}
-                  editLabel={`Edit ${gateway.name}`}
-                />
+            ),
+          },
+          {
+            header: "Environment",
+            render: (gateway) => <span className="pill strong">{gateway.environment}</span>,
+          },
+          {
+            header: "Profiles",
+            render: (gateway) => (
+              <div className="stack">
+                {gateway.profileNames.map((profile) => (
+                  <span className="pill strong" key={profile}>
+                    {profile}
+                  </span>
+                ))}
               </div>
-            </div>
-
-            <div className="grid two-column">
-              <div>
-                <p className="eyebrow">Profiles</p>
-                <div className="stack" style={{ marginTop: 10 }}>
-                  {gateway.profileNames.map((profile) => (
-                    <span className="pill strong" key={profile}>
-                      {profile}
-                    </span>
-                  ))}
-                </div>
-
-                <p className="eyebrow" style={{ marginTop: 18 }}>Related roles</p>
-                <div className="stack" style={{ marginTop: 10 }}>
-                  {gateway.roleNames.map((role) => (
-                    <span className="pill" key={role}>
-                      {role}
-                    </span>
-                  ))}
-                </div>
+            ),
+          },
+          {
+            header: "MCPs",
+            render: (gateway) => (
+              <div className="stack">
+                {gateway.mcpNames.map((mcp) => (
+                  <span className="pill" key={mcp}>
+                    {mcp}
+                  </span>
+                ))}
               </div>
-
-              <div>
-                <p className="eyebrow">Exposed MCPs</p>
-                <div className="stack" style={{ marginTop: 10 }}>
-                  {gateway.mcpNames.map((mcp) => (
-                    <span className="pill" key={mcp}>
-                      {mcp}
-                    </span>
-                  ))}
-                </div>
-                <p style={{ marginTop: 18 }}>
-                  Appending <code>?profile=operations</code> narrows returned tools to that profile only.
-                </p>
-              </div>
-            </div>
-          </article>
-        ))}
-      </section>
-
-      <section className="instruction-card">
-        <div className="page-header" style={{ alignItems: "start" }}>
-          <div>
-            <span className="eyebrow">Gateway Setup</span>
-            <h2>Cursor, Claude Code, and Codex</h2>
-            <p>Switch tabs to see tool-specific setup guidance and the exact snippet to use.</p>
-          </div>
-        </div>
-
-        <div className="tab-list" role="tablist" aria-label="Gateway setup tools">
-          {setupExamples.map((example) => (
-            <button
-              key={example.tool}
-              className={`tab-button${selectedTool === example.tool ? " active" : ""}`}
-              type="button"
-              role="tab"
-              aria-selected={selectedTool === example.tool}
-              onClick={() => setSelectedTool(example.tool)}
-            >
-              {example.tool}
-            </button>
-          ))}
-        </div>
-
-        {activeSetup ? (
-          <div className="tab-panel">
-            <span className="eyebrow">{activeSetup.tool}</span>
-            <p>{activeSetup.description}</p>
-            <pre className="code-block">{activeSetup.snippet}</pre>
-          </div>
-        ) : null}
-      </section>
+            ),
+          },
+          {
+            header: "Actions",
+            render: (gateway) => (
+              <ResourceActions
+                extraActions={
+                  <button
+                    className="icon-button"
+                    type="button"
+                    onClick={() => setSetupGateway(gateway)}
+                    aria-label={`Setup instructions for ${gateway.name}`}
+                    title={`Setup instructions for ${gateway.name}`}
+                  >
+                    <TerminalIcon />
+                  </button>
+                }
+                onEdit={() => openEditModal(gateway)}
+                onDelete={() => setDeleteGateway(gateway)}
+                deleteLabel={`Delete ${gateway.name}`}
+                editLabel={`Edit ${gateway.name}`}
+              />
+            ),
+          },
+        ]}
+      />
 
       <Modal
         open={formOpen}
@@ -273,6 +259,46 @@ export function GatewaysAdmin({ initialGateways, setupExamples, availableProfile
         }
       >
         <p>Delete <strong>{deleteGateway?.name}</strong>?</p>
+      </Modal>
+
+      <Modal
+        open={Boolean(setupGateway)}
+        title={setupGateway ? `${setupGateway.name} setup` : "Gateway setup"}
+        onClose={() => setSetupGateway(null)}
+        actions={
+          <button className="action-button modal-submit" type="button" onClick={() => setSetupGateway(null)}>
+            Close
+          </button>
+        }
+      >
+        <p>Use the gateway endpoint below and add <code>?profile=operations</code> when you want the session scoped to one profile.</p>
+        <div className="tab-list" role="tablist" aria-label="Gateway setup tools">
+          {setupExamples.map((example) => (
+            <button
+              key={example.tool}
+              className={`tab-button${selectedTool === example.tool ? " active" : ""}`}
+              type="button"
+              role="tab"
+              aria-selected={selectedTool === example.tool}
+              onClick={() => setSelectedTool(example.tool)}
+            >
+              {example.tool}
+            </button>
+          ))}
+        </div>
+
+        {activeSetup ? (
+          <div className="tab-panel">
+            <span className="eyebrow">{activeSetup.tool}</span>
+            <p>{activeSetup.description}</p>
+            <pre className="code-block">
+              {activeSetup.snippet.replaceAll(
+                "https://gateway.northstar.dev/mcp",
+                setupGateway?.address ?? "https://gateway.company.dev/mcp",
+              )}
+            </pre>
+          </div>
+        ) : null}
       </Modal>
 
       <Modal

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { ResourceActions } from "@/components/ui/resource-actions";
@@ -59,39 +60,35 @@ export function ProfilesAdmin({ initialProfiles, allowedMcpNames, availableRoleN
         </button>
       </div>
 
-      {profiles.map((profile) => (
-        <article className="card" key={profile.id}>
-          <div className="page-header" style={{ alignItems: "start" }}>
-            <div>
-              <span className="eyebrow">Profile</span>
-              <h2>{profile.name}</h2>
-              <p>{profile.summary || "No summary provided yet."}</p>
-            </div>
-            <div className="resource-header-actions">
-              <span className="badge strong">{profile.mcpNames.length} MCPs</span>
-              <ResourceActions
-                onEdit={() => openEditModal(profile)}
-                onDelete={() => setDeleteProfile(profile)}
-                deleteLabel={`Delete ${profile.name}`}
-                editLabel={`Edit ${profile.name}`}
-              />
-            </div>
-          </div>
-
-          <div className="grid two-column">
-            <div>
-              <p className="eyebrow">Roles</p>
-              <div className="stack" style={{ marginTop: 10 }}>
+      <DataTable
+        rows={profiles}
+        getRowKey={(profile) => profile.id}
+        columns={[
+          {
+            header: "Profile",
+            render: (profile) => (
+              <div className="resource-cell-copy">
+                <strong>{profile.name}</strong>
+                <span>{profile.summary || "No summary provided yet."}</span>
+              </div>
+            ),
+          },
+          {
+            header: "Roles",
+            render: (profile) => (
+              <div className="stack">
                 {profile.roleNames.map((role) => (
                   <span className="pill strong" key={role}>
                     {role}
                   </span>
                 ))}
               </div>
-            </div>
-            <div>
-              <p className="eyebrow">Accessible MCPs</p>
-              <div className="stack" style={{ marginTop: 10 }}>
+            ),
+          },
+          {
+            header: "MCPs",
+            render: (profile) => (
+              <div className="stack">
                 {profile.mcpNames.length ? (
                   profile.mcpNames.map((mcp) => (
                     <span className="pill" key={mcp}>
@@ -102,10 +99,21 @@ export function ProfilesAdmin({ initialProfiles, allowedMcpNames, availableRoleN
                   <span className="pill">No MCP access yet</span>
                 )}
               </div>
-            </div>
-          </div>
-        </article>
-      ))}
+            ),
+          },
+          {
+            header: "Actions",
+            render: (profile) => (
+              <ResourceActions
+                onEdit={() => openEditModal(profile)}
+                onDelete={() => setDeleteProfile(profile)}
+                deleteLabel={`Delete ${profile.name}`}
+                editLabel={`Edit ${profile.name}`}
+              />
+            ),
+          },
+        ]}
+      />
 
       <Modal
         open={formOpen}

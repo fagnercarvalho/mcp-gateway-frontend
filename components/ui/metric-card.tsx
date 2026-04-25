@@ -1,15 +1,15 @@
 type MetricCardProps = {
   label: string;
   value: string;
-  detail: string;
+  detail?: string;
 };
 
 export function MetricCard({ label, value, detail }: MetricCardProps) {
   return (
     <article className="metric-card">
-      <p>{label}</p>
+      <p className="metric-label">{label}</p>
       <strong>{value}</strong>
-      <p>{detail}</p>
+      {detail ? <p className="metric-detail">{detail}</p> : null}
     </article>
   );
 }
