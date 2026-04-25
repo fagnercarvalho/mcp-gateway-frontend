@@ -327,6 +327,31 @@ tr:last-child td {
   color: var(--text);
 }
 
+.field input:disabled,
+.field select:disabled,
+.field textarea:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.headers-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.header-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.form-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
 .action-button {
   margin-top: 18px;
   padding: 14px 18px;
@@ -615,6 +640,10 @@ tr:last-child td {
   }
 
   .two-column {
+    grid-template-columns: 1fr;
+  }
+
+  .header-row {
     grid-template-columns: 1fr;
   }
 }
